@@ -37,19 +37,46 @@ library(MVN) # for Mardia's test9+
 # as per Alonso et al 2012. If significant test with mixed anova
 # using nest as random effect
 
-mardiaTest(dat[which(dat$sampleType2=="blood_cells"), 15:16])
+mardiaTest(dat[which(dat$sampleType2=="blood_cells"), 13:14])
 # blood cells not multivariate normal need permanova
-mardiaTest(dat[which(dat$sampleType2=="plasma"), 15:16])
+mardiaTest(dat[which(dat$sampleType2=="blood_cells" &
+                       dat$ColYr=="LHI15"), 13:14])
+# blood cells LHI15 are multivariate normal can use manova
+mardiaTest(dat[which(dat$sampleType2=="blood_cells"&
+                       dat$ColYr=="HER15"), 13:14])
+# blood cells LHI14 are multivariate normal can use manova
+mardiaTest(dat[which(dat$sampleType2=="blood_cells"&
+                       dat$ColYr=="LHI16"), 13:14])
+# blood cells LHI16 are multivariate normal can use manova
+mardiaTest(dat[which(dat$sampleType2=="plasma"), 13:14])
 # plasma multivariate normal can use manova
 
 cor.test(dat[dat$sampleType2=="blood_cells",]$d13C_VDPB,
          dat[dat$sampleType2=="blood_cells",]$d15N_Air, method="spearman")
 # sig corr
+
+cor.test(dat[dat$sampleType2=="blood_cells" &
+               dat$ColYr=="LHI15",]$d13C_VDPB,
+         dat[dat$sampleType2=="blood_cells"&
+               dat$ColYr=="LHI15",]$d15N_Air, method="spearman")
+# not sig
+
+cor.test(dat[dat$sampleType2=="blood_cells"&
+               dat$ColYr=="HER15",]$d13C_VDPB,
+         dat[dat$sampleType2=="blood_cells"&
+               dat$ColYr=="HER15",]$d15N_Air, method="spearman")
+# sig corr
+
+cor.test(dat[dat$sampleType2=="blood_cells"&
+               dat$ColYr=="LHI16",]$d13C_VDPB,
+         dat[dat$sampleType2=="blood_cells"&
+               dat$ColYr=="LHI16",]$d15N_Air, method="spearman")
+# not sig corr
+
 cor.test(dat[dat$sampleType2=="plasma",]$d13C_VDPB,
          dat[dat$sampleType2=="plasma",]$d15N_Air, method="spearman")
 # not sig corr
 #
-
 leveneTest(d13C_VDPB~Age, data=dat[dat$sampleType2=="blood_cells",]
            , center=mean) #0.1183 0.7324
 leveneTest(d13C_VDPB~Year, data=dat[dat$sampleType2=="blood_cells",]
@@ -65,7 +92,22 @@ leveneTest(d15N_Air~Col, data=dat[dat$sampleType2=="blood_cells",]
            , center=mean)# 11.174 0.001656 **
 # 50% ok 50% not - need permanova if including all. Age could be done with Manova IF normal?
 
+# blood col_yr age
+leveneTest(d13C_VDPB~Age, data=dat[dat$sampleType2=="blood_cells" & dat$ColYr=="LHI15",]
+           , center=mean) #13.455 0.002533 ** sig BUT gonna run as manova
+leveneTest(d13C_VDPB~Age, data=dat[dat$sampleType2=="blood_cells"& dat$ColYr=="LHI16",]
+           , center=mean)#0.0337 0.8569
+leveneTest(d13C_VDPB~Age, data=dat[dat$sampleType2=="blood_cells"& dat$ColYr=="HER15",]
+           , center=mean)#0.3016 0.5915
 
+leveneTest(d15N_Air~Age, data=dat[dat$sampleType2=="blood_cells" & dat$ColYr=="LHI15",]
+           , center=mean) #13.0811 0.1011
+leveneTest(d15N_Air~Age, data=dat[dat$sampleType2=="blood_cells"& dat$ColYr=="LHI16",]
+           , center=mean)# 1.7115 0.2119
+leveneTest(d15N_Air~Age, data=dat[dat$sampleType2=="blood_cells"& dat$ColYr=="HER15",]
+           , center=mean)#2.5821 0.1304
+
+ #plasma
 leveneTest(d13C_VDPB~Year, data=dat[dat$sampleType2=="plasma",]
            , center=mean)#0.5687 0.4588
 leveneTest(d13C_VDPB~Col, data=dat[dat$sampleType2=="plasma",]
@@ -90,27 +132,22 @@ leveneTest(d15N_Air~Col, data=dat[dat$sampleType2=="plasma",]
 
 plas_dat<-dat[dat$sampleType2=="plasma",]
 
-man_plas<-manova(cbind(plas_dat$d13C_VDPB, plas_dat$d15N_Air)~Year+Col, data=plas_dat)
+man_plas<-manova(cbind(plas_dat$d13C_VDPB, plas_dat$d15N_Air)~ColYr, data=plas_dat)
 
 summary(man_plas, test="Wilks")
 
 # significant so analyse N and C seprately
 
-plas_c<-lm(d13C_VDPB~Year+Col, data=plas_dat)
+plas_c<-lm(d13C_VDPB~ColYr, data=plas_dat)
 summary(plas_c)
 
 library(agricolae)
-HSD.test(plas_c, trt='Year', console = T) # NS
-HSD.test(plas_c, trt='Col', console = T) # sig @ 0.05 alpha
-HSD.test(plas_c, trt=c('Col', 'Year'), console = T) # want to know diff.
-#from each col YR
+HSD.test(plas_c, trt='ColYr', console = T) # sig @ 0.05 alpha
 
-plas_n<-lm(d15N_Air~Year+Col, data=plas_dat)
+plas_n<-lm(d15N_Air~ColYr, data=plas_dat)
 summary(plas_n)
 
-HSD.test(plas_n, trt='Year', console = T) # sig @ 0.05 alpha
-HSD.test(plas_n, trt='Col', console = T) # sig @ 0.05 alpha
-HSD.test(plas_n, trt=c('Col', 'Year'), console = T) 
+HSD.test(plas_n, trt='ColYr', console = T) # sig @ 0.05 alpha
 
 # Time for blood!
 
@@ -119,31 +156,81 @@ blood_dat<-dat[dat$sampleType2=="blood_cells",]
 
 
 perm_blood<-adonis2(cbind(blood_dat$d13C_VDPB, blood_dat$d15N_Air)~
-            Year+Col+Age, method="euclidean",
+            ColYr, method="euclidean",
             data=blood_dat, by="margin", permutations=9999)
 # Using Euclidean distances as per Mancini & Bugoni (2014)
 
-summary(perm_blood)
 perm_blood
 
-blood_dat$Year<-as.factor(blood_dat$Year) # factor for kruskal.test
-blood_dat$Col<-as.factor(blood_dat$Col)
-
-kruskal.test(d13C_VDPB~Year, data=blood_dat)
-
-kruskal.test(d13C_VDPB~Col, data=blood_dat)
-
-kruskal.test(d13C_VDPB~Age, data=blood_dat)
-
-kruskal.test(d15N_Air~Year, data=blood_dat)
-
-kruskal.test(d15N_Air~Col, data=blood_dat)
-
-kruskal.test(d15N_Air~Age, data=blood_dat)
-
-#ok cool but really wanna know if chicks and adults vary in each col/yr
-#dataset - see alonso for framework
-
 library(nparcomp)
-npar <- nparcomp(d13C_VDPB~Year, data=blood_dat, type="Tukey")
+npar <- nparcomp(d13C_VDPB~ColYr, data=blood_dat, type="Tukey")
 summary(npar)
+
+npar <- nparcomp(d15N_Air~ColYr, data=blood_dat, type="Tukey")
+summary(npar)
+
+# Now blood age comparisons per sampling ColYr
+
+lhi15_blood<-blood_dat[blood_dat$ColYr=="LHI15",]
+lhi16_blood<-blood_dat[blood_dat$ColYr=="LHI16",]
+her15_blood<-blood_dat[blood_dat$ColYr=="HER15",]
+
+
+man_lhi16<-manova(cbind(lhi16_blood$d13C_VDPB, lhi16_blood$d15N_Air)~Age, data=lhi16_blood)
+
+summary(man_lhi16, test="Wilks")
+
+man_her15<-manova(cbind(her15_blood$d13C_VDPB, her15_blood$d15N_Air)~Age, data=her15_blood)
+
+summary(man_her15, test="Wilks")
+
+man_lhi15<-manova(cbind(lhi15_blood$d13C_VDPB, lhi15_blood$d15N_Air)~Age, data=lhi15_blood)
+
+summary(man_lhi15, test="Wilks")
+
+man_lhi15_NO_OUTLIER<-lhi15_blood[lhi15_blood$d15N_Air<10.5,]
+
+man_lhi15_NOL<-manova(cbind(man_lhi15_NO_OUTLIER$d13C_VDPB, man_lhi15_NO_OUTLIER$d15N_Air)~Age, data=man_lhi15_NO_OUTLIER)
+
+summary(man_lhi15_NOL, test="Wilks")
+
+# analyse N and C seprately
+
+c_lhi16<-lm(d13C_VDPB~Age, data=lhi16_blood)
+summary(c_lhi16)
+HSD.test(c_lhi16, trt='Age', console = T)
+
+c_her15<-lm(d13C_VDPB~Age, data=her15_blood)
+summary(c_her15)
+HSD.test(c_her15, trt='Age', console = T)
+
+c_lhi15<-lm(d13C_VDPB~Age, data=lhi15_blood)
+summary(c_lhi15)
+HSD.test(c_lhi15, trt='Age', console = T)
+
+c_lhi15_NOL<-lm(d13C_VDPB~Age, data=man_lhi15_NO_OUTLIER)
+summary(c_lhi15_NOL)
+HSD.test(c_lhi15_NOL, trt='Age', console = T)
+
+n_lhi16<-lm(d15N_Air~Age, data=lhi16_blood)
+summary(n_lhi16)
+HSD.test(n_lhi16, trt='Age', console = T)
+
+n_her15<-lm(d15N_Air~Age, data=her15_blood)
+summary(n_her15)
+HSD.test(n_her15, trt='Age', console = T)
+
+n_lhi15<-lm(d15N_Air~Age, data=lhi15_blood)
+summary(n_lhi15)
+HSD.test(n_lhi15, trt='Age', console = T)
+
+n_lhi15_NOL<-lm(d15N_Air~Age, data=man_lhi15_NO_OUTLIER)
+summary(n_lhi15_NOL)
+HSD.test(n_lhi15_NOL, trt='Age', console = T)
+
+
+
+# Ununsed
+#kruskal.test(d13C_VDPB~Year, data=blood_dat)
+#kruskal.test(d15N_Air~Year, data=blood_dat)
+
