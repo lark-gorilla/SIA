@@ -18,10 +18,10 @@ p1+geom_point(aes(shape=Age, color=ColYr), size=3)+theme_bw()
 p1+geom_point(aes(color=Age), size=3)+theme_bw()+facet_wrap(~ColYr)
 #dev.off()
 
-png("exploration/blood_ad_ck_yr_WB_correction.png", width = 9, height =6 , units ="in", res =600)
+#png("exploration/blood_ad_ck_yr_WB_correction.png", width = 9, height =6 , units ="in", res =600)
 p1+geom_point(aes(color=Age), size=3)+geom_point(data=dat[dat$sampleType2=="whole_blood",])+
   theme_bw()+facet_wrap(~ColYr)
-dev.off()
+#dev.off()
 
 p1<-ggplot(data=dat, aes(x=d13C_VDPB, y=d15N_Air))
 
@@ -759,5 +759,33 @@ m5<-levelplot(raster(r1, layer="SST2016_36_42"),
 jpeg("~/grive/phd/analyses/SIA/exploration/sst_gps_2016.jpg", width =12 , height =6 , units ="in", res =300)
 grid.arrange(m1,m2,m3,m4,m5, nrow=2, ncol=3) 
 dev.off()
+
+# Read in fish data from revill et al 
+
+dat<-read.csv("spreads/SSP_SIA_ready.csv", h=T)
+
+
+p1<-ggplot(data=dat, aes(x=d13C_Mean, y=d15N_Mean, colour=Type))
+
+plot1<-p1+
+
+  geom_errorbar(aes(ymin=(d15N_Mean-d15N_SE), ymax=
+                      (d15N_Mean+d15N_SE)))+
+  geom_errorbarh(aes(xmin=(d13C_Mean-d13C_SE), xmax=
+                      (d13C_Mean+d13C_SE)))+
+  
+  geom_point(size=2)+
+  geom_text(aes(label=Species))+
+
+  
+  xlab(expression(δ^{13}~"C (‰)"))+
+  ylab(expression(δ^{15}~"N (‰)"))+
+  theme(legend.position=0,
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(colour = "black", size=1, fill=NA))
+
+
+
 
  

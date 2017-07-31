@@ -37,144 +37,131 @@ library(MVN) # for Mardia's test9+
 # as per Alonso et al 2012. If significant test with mixed anova
 # using nest as random effect
 
-mardiaTest(dat[which(dat$sampleType2=="blood_cells"), 13:14])
-# blood cells not multivariate normal need permanova
-mardiaTest(dat[which(dat$sampleType2=="blood_cells" &
-                       dat$ColYr=="LHI15"), 13:14])
-# blood cells LHI15 are multivariate normal can use manova
-mardiaTest(dat[which(dat$sampleType2=="blood_cells"&
-                       dat$ColYr=="HER15"), 13:14])
-# blood cells LHI14 are multivariate normal can use manova
-mardiaTest(dat[which(dat$sampleType2=="blood_cells"&
-                       dat$ColYr=="LHI16"), 13:14])
-# blood cells LHI16 are multivariate normal can use manova
-mardiaTest(dat[which(dat$sampleType2=="plasma"), 13:14])
+
+## NEED TO REWORK AND TIDY SCRIPT
+# Comparing adults to chicks at each colony:
+# t-tests or Mann-whitey U for C and N seperately 
+
+# Compring adult, then chick, then adult plasma between ColYrs:
+# MANOVA (followed by tukey) or PERMANOVA followed by Kruskal wallace (followed by post hoc) fo C and N seperately
+
+# spearmans rank or significant manova first to show variable significance
+
+# TESTING differences between colyr for adult plasma, blood and ck blood
+
+ad_plasma<-dat[dat$sampleType2=="plasma",]
+ad_blood<-dat[dat$sampleType2=="blood_cells" & dat$Age=="AD",]
+ck_blood<-dat[dat$sampleType2=="blood_cells" & dat$Age=="CK",]
+
+# multivariate normal test
+
+mardiaTest(ck_blood[,13:14])
+# multivariate normal
+mardiaTest(ad_blood[,13:14])
+# multivariate normal
+mardiaTest(ad_plasma[,13:14])
 # plasma multivariate normal can use manova
 
-cor.test(dat[dat$sampleType2=="blood_cells",]$d13C_VDPB,
-         dat[dat$sampleType2=="blood_cells",]$d15N_Air, method="spearman")
-# sig corr
+# univariate normal test and homogeniety of variance
 
-cor.test(dat[dat$sampleType2=="blood_cells" &
-               dat$ColYr=="LHI15",]$d13C_VDPB,
-         dat[dat$sampleType2=="blood_cells"&
-               dat$ColYr=="LHI15",]$d15N_Air, method="spearman")
-# not sig
+leveneTest(d13C_VDPB~ColYr, data=ck_blood, center=mean)
+shapiro.test(ck_blood$d13C_VDPB)
+leveneTest(d13C_VDPB~ColYr, data=ad_blood, center=mean)
+shapiro.test(ad_blood$d13C_VDPB)
+leveneTest(d13C_VDPB~ColYr, data=ad_plasma, center=mean)
+shapiro.test(ad_plasma$d13C_VDPB)
+# Carbon all fine
 
-cor.test(dat[dat$sampleType2=="blood_cells"&
-               dat$ColYr=="HER15",]$d13C_VDPB,
-         dat[dat$sampleType2=="blood_cells"&
-               dat$ColYr=="HER15",]$d15N_Air, method="spearman")
-# sig corr
+leveneTest(d15N_Air~ColYr, data=ck_blood, center=mean)
+shapiro.test(ck_blood$d15N_Air) # Not NORMAL!
+leveneTest(d15N_Air~ColYr, data=ad_blood, center=mean)
+shapiro.test(ad_blood$d15N_Air) # Not NORMAL!
+leveneTest(d15N_Air~ColYr, data=ad_plasma, center=mean)
+shapiro.test(ad_plasma$d15N_Air)
 
-cor.test(dat[dat$sampleType2=="blood_cells"&
-               dat$ColYr=="LHI16",]$d13C_VDPB,
-         dat[dat$sampleType2=="blood_cells"&
-               dat$ColYr=="LHI16",]$d15N_Air, method="spearman")
-# not sig corr
+# Manovas for each but will not use
 
-cor.test(dat[dat$sampleType2=="plasma",]$d13C_VDPB,
-         dat[dat$sampleType2=="plasma",]$d15N_Air, method="spearman")
-# not sig corr
-#
-leveneTest(d13C_VDPB~Age, data=dat[dat$sampleType2=="blood_cells",]
-           , center=mean) #0.1183 0.7324
-leveneTest(d13C_VDPB~Year, data=dat[dat$sampleType2=="blood_cells",]
-           , center=mean)#9.8225 0.002999 **
-leveneTest(d13C_VDPB~Col, data=dat[dat$sampleType2=="blood_cells",]
-           , center=mean)#8.0694 0.006686 **
-
-leveneTest(d15N_Air~Age, data=dat[dat$sampleType2=="blood_cells",]
-           , center=mean)#1.2514 0.2691
-leveneTest(d15N_Air~Year, data=dat[dat$sampleType2=="blood_cells",]
-           , center=mean)#1.0615 0.3082
-leveneTest(d15N_Air~Col, data=dat[dat$sampleType2=="blood_cells",]
-           , center=mean)# 11.174 0.001656 **
-# 50% ok 50% not - need permanova if including all. Age could be done with Manova IF normal?
-
-# blood col_yr age
-leveneTest(d13C_VDPB~Age, data=dat[dat$sampleType2=="blood_cells" & dat$ColYr=="LHI15",]
-           , center=mean) #13.455 0.002533 ** sig BUT gonna run as manova
-leveneTest(d13C_VDPB~Age, data=dat[dat$sampleType2=="blood_cells"& dat$ColYr=="LHI16",]
-           , center=mean)#0.0337 0.8569
-leveneTest(d13C_VDPB~Age, data=dat[dat$sampleType2=="blood_cells"& dat$ColYr=="HER15",]
-           , center=mean)#0.3016 0.5915
-
-leveneTest(d15N_Air~Age, data=dat[dat$sampleType2=="blood_cells" & dat$ColYr=="LHI15",]
-           , center=mean) #13.0811 0.1011
-leveneTest(d15N_Air~Age, data=dat[dat$sampleType2=="blood_cells"& dat$ColYr=="LHI16",]
-           , center=mean)# 1.7115 0.2119
-leveneTest(d15N_Air~Age, data=dat[dat$sampleType2=="blood_cells"& dat$ColYr=="HER15",]
-           , center=mean)#2.5821 0.1304
-
- #plasma
-leveneTest(d13C_VDPB~Year, data=dat[dat$sampleType2=="plasma",]
-           , center=mean)#0.5687 0.4588
-leveneTest(d13C_VDPB~Col, data=dat[dat$sampleType2=="plasma",]
-           , center=mean)#0.4005 0.5333
-
-leveneTest(d15N_Air~Year, data=dat[dat$sampleType2=="plasma",]
-           , center=mean)#3.768 0.06516
-leveneTest(d15N_Air~Col, data=dat[dat$sampleType2=="plasma",]
-           , center=mean)#3.8307 0.06313 .
-# manova is ok (just) and all above 0.05
-
-# questions I actually want to answer
-
-# Difference between adults and chicks
-# Difference between colonies
-# Difference between years
-
-# plasma, difference between colonies
-# plasma, difference between years
-
-# PLasma first
-
-plas_dat<-dat[dat$sampleType2=="plasma",]
-
-man_plas<-manova(cbind(plas_dat$d13C_VDPB, plas_dat$d15N_Air)~ColYr, data=plas_dat)
-
+man_plas<-manova(cbind(ad_plasma$d13C_VDPB, ad_plasma$d15N_Air)~ColYr,
+                 data=ad_plasma)
 summary(man_plas, test="Wilks")
 
-# significant so analyse N and C seprately
+man_plas<-manova(cbind(ad_blood$d13C_VDPB, ad_blood$d15N_Air)~ColYr,
+                 data=ad_blood)
+summary(man_plas, test="Wilks")
 
-plas_c<-lm(d13C_VDPB~ColYr, data=plas_dat)
-summary(plas_c)
+man_plas<-manova(cbind(ck_blood$d13C_VDPB, ck_blood$d15N_Air)~ColYr,
+                 data=ck_blood)
+summary(man_plas, test="Wilks")
+
+# Manovas are fine and assumptions met HOWEVER, when I do post hoc tests
+# Nitrogen is bimodal in whole blood and not normally distributed (according to Shapiro wilks)
+# I'll run kruskal-wallace for these so not sure if valid?
+
+#look for post hoc differnces
+
+
+# Adult plasma
+plas_c<-lm(d13C_VDPB~ColYr, data=ad_plasma)
+summary(plas_c) # only just significant
 
 library(agricolae)
-HSD.test(plas_c, trt='ColYr', console = T) # sig @ 0.05 alpha
+HSD.test(plas_c, trt='ColYr', console = T) # two 2015 samples sig diff 
+#from each other, but not from LHI2016
 
-plas_n<-lm(d15N_Air~ColYr, data=plas_dat)
+plas_n<-lm(d15N_Air~ColYr, data=ad_plasma)
 summary(plas_n)
 
-HSD.test(plas_n, trt='ColYr', console = T) # sig @ 0.05 alpha
+HSD.test(plas_n, trt='ColYr', console = T) # Heron and LHI 2015 the same, 
+#LHI 2016 sig diff from both
 
-# Time for blood!
+# Adult blood
+blod_Ac<-lm(d13C_VDPB~ColYr, data=ad_blood)
+summary(blod_Ac)
 
-library(vegan)
-blood_dat<-dat[dat$sampleType2=="blood_cells",]
+HSD.test(blod_Ac, trt='ColYr', console = T) # Heron and LHI 2015 the same, 
+#LHI 2016 sig diff from both
+
+# kruskal from agricolae runs both a kruskal-wallace and post hoc comp!
+kruskal(ad_blood$d15N_Air, ad_blood$ColYr, p.adj="bonferroni", console=T)
+# added bonferroni for extra power?
+# Heron and LHI 2015 the same, LHI 2016 sig diff from both
+
+# Chick blood
+blod_c<-lm(d13C_VDPB~ColYr, data=ck_blood)
+summary(blod_c)
+
+HSD.test(blod_c, trt='ColYr', console = T) # Heron and LHI 2016 the same, 
+#LHI 2015 sig diff from both
+
+kruskal(ck_blood$d15N_Air, ck_blood$ColYr, p.adj="bonferroni", console=T)
+# added bonferroni for extra power?
+# Heron and LHI 2015 the same, LHI 2016 sig diff from both
 
 
-perm_blood<-adonis2(cbind(blood_dat$d13C_VDPB, blood_dat$d15N_Air)~
-            ColYr, method="euclidean",
-            data=blood_dat, by="margin", permutations=9999)
-# Using Euclidean distances as per Mancini & Bugoni (2014)
+# Now differences between adults and chicks within each colony-year
+# sampling combination
 
-perm_blood
+lhi15_blood<-dat[dat$sampleType2=="blood_cells" & dat$ColYr=="LHI15",]
+lhi16_blood<-dat[dat$sampleType2=="blood_cells" & dat$ColYr=="LHI16",]
+her15_blood<-dat[dat$sampleType2=="blood_cells" & dat$ColYr=="HER15",]
 
-library(nparcomp)
-npar <- nparcomp(d13C_VDPB~ColYr, data=blood_dat, type="Tukey")
-summary(npar)
 
-npar <- nparcomp(d15N_Air~ColYr, data=blood_dat, type="Tukey")
-summary(npar)
+leveneTest(d13C_VDPB~Age, data=lhi15_blood, center=mean)# not normal
+shapiro.test(lhi15_blood$d13C_VDPB)# just under 0.05
+leveneTest(d13C_VDPB~Age, data=lhi16_blood, center=mean)#fine
+shapiro.test(lhi16_blood$d13C_VDPB)#fine
+leveneTest(d13C_VDPB~Age, data=her15_blood, center=mean)#fine
+shapiro.test(her15_blood$d13C_VDPB)#fine
 
-# Now blood age comparisons per sampling ColYr
 
-lhi15_blood<-blood_dat[blood_dat$ColYr=="LHI15",]
-lhi16_blood<-blood_dat[blood_dat$ColYr=="LHI16",]
-her15_blood<-blood_dat[blood_dat$ColYr=="HER15",]
+leveneTest(d15N_Air~Age, data=lhi15_blood, center=mean)#fine
+shapiro.test(lhi15_blood$d15N_Air)#fine
+leveneTest(d15N_Air~Age, data=lhi16_blood, center=mean)#fine
+shapiro.test(lhi16_blood$d15N_Air)#fine
+leveneTest(d15N_Air~Age, data=her15_blood, center=mean)#fine
+shapiro.test(her15_blood$d15N_Air)#not homogeneous
 
+# Manovas, not sure if using?
 
 man_lhi16<-manova(cbind(lhi16_blood$d13C_VDPB, lhi16_blood$d15N_Air)~Age, data=lhi16_blood)
 
@@ -196,41 +183,100 @@ summary(man_lhi15_NOL, test="Wilks")
 
 # analyse N and C seprately
 
-c_lhi16<-lm(d13C_VDPB~Age, data=lhi16_blood)
-summary(c_lhi16)
-HSD.test(c_lhi16, trt='Age', console = T)
+t.test(d13C_VDPB ~ Age, data=lhi16_blood)
 
-c_her15<-lm(d13C_VDPB~Age, data=her15_blood)
-summary(c_her15)
-HSD.test(c_her15, trt='Age', console = T)
+t.test(d13C_VDPB ~ Age, data=her15_blood)
 
-c_lhi15<-lm(d13C_VDPB~Age, data=lhi15_blood)
-summary(c_lhi15)
-HSD.test(c_lhi15, trt='Age', console = T)
+wilcox.test(d13C_VDPB ~ Age, data=lhi15_blood)
 
-c_lhi15_NOL<-lm(d13C_VDPB~Age, data=man_lhi15_NO_OUTLIER)
-summary(c_lhi15_NOL)
-HSD.test(c_lhi15_NOL, trt='Age', console = T)
+t.test(d15N_Air ~ Age, data=lhi16_blood)
 
-n_lhi16<-lm(d15N_Air~Age, data=lhi16_blood)
-summary(n_lhi16)
-HSD.test(n_lhi16, trt='Age', console = T)
+t.test(d15N_Air ~ Age, data=lhi15_blood)
 
-n_her15<-lm(d15N_Air~Age, data=her15_blood)
-summary(n_her15)
-HSD.test(n_her15, trt='Age', console = T)
+t.test(d15N_Air ~ Age, data=man_lhi15_NO_OUTLIER)
 
-n_lhi15<-lm(d15N_Air~Age, data=lhi15_blood)
-summary(n_lhi15)
-HSD.test(n_lhi15, trt='Age', console = T)
+wilcox.test(d15N_Air ~ Age, data=her15_blood)
 
-n_lhi15_NOL<-lm(d15N_Air~Age, data=man_lhi15_NO_OUTLIER)
-summary(n_lhi15_NOL)
-HSD.test(n_lhi15_NOL, trt='Age', console = T)
+# plot data
+rw_blood<-dat[dat$sampleType2=="blood_cells",]
+mn_blood<-rbind(data.frame(aggregate(d15N_Air~ Age+ColYr, rw_blood, mean), id="mean"),
+                data.frame(aggregate(d15N_Air~ Age+ColYr, rw_blood, sd), id="sd"))
+d13C_VDPB<-c(aggregate(d13C_VDPB~ Age+ColYr, rw_blood, mean)[,3], 
+  aggregate(d13C_VDPB~ Age+ColYr, rw_blood, sd)[,3])
+mn_blood<-cbind(mn_blood, d13C_VDPB)
 
+p1<-ggplot(data=mn_blood[mn_blood$id=="mean",], aes(x=d13C_VDPB, y=d15N_Air))
+
+plot1<-p1+geom_point(data=rw_blood, aes(shape=ColYr, colour=Age))+
+  
+  geom_errorbar(aes(ymin=(mn_blood[mn_blood$id=="mean",]$d15N_Air-
+                      mn_blood[mn_blood$id=="sd",]$d15N_Air), ymax=
+                      (mn_blood[mn_blood$id=="mean",]$d15N_Air+
+                         mn_blood[mn_blood$id=="sd",]$d15N_Air)))+
+  
+  geom_errorbarh(aes(xmin=(mn_blood[mn_blood$id=="mean",]$d13C_VDPB-
+                            mn_blood[mn_blood$id=="sd",]$d13C_VDPB), xmax=
+                      (mn_blood[mn_blood$id=="mean",]$d13C_VDPB+
+                         mn_blood[mn_blood$id=="sd",]$d13C_VDPB)))+
+  
+  geom_point(aes(shape=ColYr, colour=Age), size=3)+
+  xlab(expression(δ^{13}~"C (‰)"))+
+  ylab(expression(δ^{15}~"N (‰)"))+
+  theme_bw()+theme(legend.position=0)
+
+jpeg("paper_plots/SIA_blood.jpg", width = 3, height =3 , units ="in", res =600)
+plot1
+dev.off()
+
+#edit mn_blood[mn_blood$id=="mean",]
+mn_blood$Age2<-"black"
+mn_blood[mn_blood$Age=="CK",]$Age2<-NA
+
+rw_blood$Age2<-"black"
+rw_blood[rw_blood$Age=="CK",]$Age2<-NA
+
+p1<-ggplot(data=mn_blood[mn_blood$id=="mean",], aes(x=d13C_VDPB, y=d15N_Air))
+
+plot1<-p1+
+  geom_point(data=rw_blood, aes(shape=ColYr, fill=Age2))+
+  
+  geom_errorbar(aes(ymin=(mn_blood[mn_blood$id=="mean",]$d15N_Air-
+                            mn_blood[mn_blood$id=="sd",]$d15N_Air), ymax=
+                      (mn_blood[mn_blood$id=="mean",]$d15N_Air+
+                         mn_blood[mn_blood$id=="sd",]$d15N_Air)))+
+  
+  geom_errorbarh(aes(xmin=(mn_blood[mn_blood$id=="mean",]$d13C_VDPB-
+                             mn_blood[mn_blood$id=="sd",]$d13C_VDPB), xmax=
+                       (mn_blood[mn_blood$id=="mean",]$d13C_VDPB+
+                          mn_blood[mn_blood$id=="sd",]$d13C_VDPB)))+
+  
+  geom_point(aes(shape=ColYr, fill=Age2), size=4)+
+  scale_shape_manual(values=c(21,22,23)) +             
+  scale_fill_identity(na.value=NA, guide="none")+
+  
+  xlab(expression(δ^{13}~"C (‰)"))+
+  ylab(expression(δ^{15}~"N (‰)"))+
+  theme(legend.position=0,
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(colour = "black", size=1, fill=NA))
+
+jpeg("paper_plots/SIA_blood2.jpg", width = 6, height =6 , units ="in", res =600)
+plot1
+dev.off()
 
 
 # Ununsed
-#kruskal.test(d13C_VDPB~Year, data=blood_dat)
-#kruskal.test(d15N_Air~Year, data=blood_dat)
+
+#perm_blood<-adonis2(cbind(blood_dat$d13C_VDPB, blood_dat$d15N_Air)~
+#                      ColYr, method="euclidean",
+#                    data=blood_dat, by="margin", permutations=9999)
+# Using Euclidean distances as per Mancini & Bugoni (2014)
+
+#perm_blood
+
+#library(nparcomp)
+#npar <- nparcomp(d13C_VDPB~ColYr, data=blood_dat, type="Tukey")
+#summary(npar)
+
 
