@@ -385,7 +385,7 @@ qplot(data=d1[d1$Var3!="1_86_2014" & d1$Var3!="1_86_2015" & d1$Var3!="1_86_2016"
 
 setwd("~/grive/phd/analyses/SIA")
 
-dat<-read.csv("spreads/GPS_LT_141516_hmm_oceano_attribs.csv", h=T, strip.white=T)
+dat<-read.csv("spreads/GPS_141516_hmm_oceano_attribs.csv", h=T, strip.white=T)
 
 # sstOi is the better dataset (worse resolution but no NAs)
 qplot(data=dat[dat$Colony=="LHI"& dat$HMMstates==2,], x=factor(days), y=sstOi, colour=factor(Year), geom="boxplot")
