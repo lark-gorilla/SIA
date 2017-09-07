@@ -228,6 +228,15 @@ jpeg("paper_plots/SIA_blood.jpg", width = 3, height =3 , units ="in", res =600)
 plot1
 dev.off()
 
+# remove LHI15 adult outlier
+
+mn_blood[mn_blood$ColYr=="LHI15" & mn_blood$Age=="AD" & mn_blood$id=="mean",]$d15N_Air<-
+  mean(rw_blood[rw_blood$ColYr=="LHI15" & rw_blood$Age=="AD" & rw_blood$d15N_Air<10.5,]$d15N_Air)
+
+
+mn_blood[mn_blood$ColYr=="LHI15" & mn_blood$Age=="AD" & mn_blood$id=="sd",]$d15N_Air<-
+  sd(rw_blood[rw_blood$ColYr=="LHI15" & rw_blood$Age=="AD" & rw_blood$d15N_Air<10.5,]$d15N_Air)
+
 #edit mn_blood[mn_blood$id=="mean",]
 mn_blood$Age2<-"black"
 mn_blood[mn_blood$Age=="CK",]$Age2<-NA
@@ -261,7 +270,7 @@ plot1<-p1+
         panel.grid.minor = element_blank(),
         panel.background = element_rect(colour = "black", size=1, fill=NA))
 
-jpeg("paper_plots/SIA_blood2.jpg", width = 6, height =6 , units ="in", res =600)
+jpeg("paper_plots/SIA_blood2_nooutlier.jpg", width = 6, height =6 , units ="in", res =600)
 plot1
 dev.off()
 
