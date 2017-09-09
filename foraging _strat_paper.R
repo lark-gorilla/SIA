@@ -1,5 +1,6 @@
 # 31/07/17 Musanze, Rwanda
 # Production foraging strategy graphs for LHI 2004, 2015 and 2016
+# Also now for Heron 2001 and 2003
 
 rm(list=ls())
 library(readxl)
@@ -94,26 +95,31 @@ for(i in unique(all_trips$BirdID2))
 }
 
 Nsample_birds<-length(unique(trip_propz$BirdID2))
+uni_birds<-unique(trip_propz$BirdID2)
 tripPropB<-NULL
 tripProp_ktest<-NULL
 for(i in 1:25)
 { 
   sample_bird_propz<-trip_propz[trip_propz$Var1==i,]$TripProp
+  sample_bird_ID<-trip_propz[trip_propz$Var1==i,]$BirdID2
   
-  # this is the fix, populate the trip length in question with 0s
-  # for birds that didnt take a trip of that length, thereby fixing
-  # issues with calculating mean and sd
   if(length(sample_bird_propz)<Nsample_birds)
   {sample_bird_propz<-c(sample_bird_propz, 
-                        rep(0, Nsample_birds-length(sample_bird_propz)))}
+                        rep(0, Nsample_birds-length(sample_bird_propz)))
+  
+  if(sum(sample_bird_propz)==0){sample_bird_ID<-uni_birds}else{
+    sample_bird_ID<-c(as.character(sample_bird_ID), 
+                      as.character(uni_birds[-which(uni_birds %in% sample_bird_ID)]))}
+  }
   
   df1<-data.frame(tLength=i,
                   tFreq=sum(trip_propz[trip_propz$Var1==i,]$Freq),
                   tProp=mean(sample_bird_propz),
                   tPropSE=sd(sample_bird_propz)/sqrt(length(sample_bird_propz)))
   
-  df2<-data.frame(bird_propz=sample_bird_propz, tLength=i) 
-   
+  df2<-data.frame(bird_propz=sample_bird_propz, bird_ID= sample_bird_ID,
+                  tLength=i)
+  
   tripPropB<-rbind(tripPropB, df1)
   tripProp_ktest<-rbind(tripProp_ktest, df2)
 }
@@ -210,22 +216,30 @@ for(i in unique(all_trips$BirdID2))
 }
 
 Nsample_birds<-length(unique(trip_propz$BirdID2))
+uni_birds<-unique(trip_propz$BirdID2)
 tripPropB<-NULL
 tripProp_ktest<-NULL
 for(i in 1:25)
 { 
   sample_bird_propz<-trip_propz[trip_propz$Var1==i,]$TripProp
+  sample_bird_ID<-trip_propz[trip_propz$Var1==i,]$BirdID2
   
   if(length(sample_bird_propz)<Nsample_birds)
   {sample_bird_propz<-c(sample_bird_propz, 
-                        rep(0, Nsample_birds-length(sample_bird_propz)))}
+                        rep(0, Nsample_birds-length(sample_bird_propz)))
+  
+  if(sum(sample_bird_propz)==0){sample_bird_ID<-uni_birds}else{
+    sample_bird_ID<-c(as.character(sample_bird_ID), 
+                      as.character(uni_birds[-which(uni_birds %in% sample_bird_ID)]))}
+  }
   
   df1<-data.frame(tLength=i,
                   tFreq=sum(trip_propz[trip_propz$Var1==i,]$Freq),
                   tProp=mean(sample_bird_propz),
                   tPropSE=sd(sample_bird_propz)/sqrt(length(sample_bird_propz)))
   
-  df2<-data.frame(bird_propz=sample_bird_propz, tLength=i)
+  df2<-data.frame(bird_propz=sample_bird_propz, bird_ID= sample_bird_ID,
+                  tLength=i)
   
   tripPropB<-rbind(tripPropB, df1)
   tripProp_ktest<-rbind(tripProp_ktest, df2)
@@ -296,23 +310,31 @@ for(i in unique(all_trips$BirdID2))
 }
 
 Nsample_birds<-length(unique(trip_propz$BirdID2))
+uni_birds<-unique(trip_propz$BirdID2)
 tripPropB<-NULL
 tripProp_ktest<-NULL
 for(i in 1:25)
 { 
   sample_bird_propz<-trip_propz[trip_propz$Var1==i,]$TripProp
+  sample_bird_ID<-trip_propz[trip_propz$Var1==i,]$BirdID2
   
   if(length(sample_bird_propz)<Nsample_birds)
   {sample_bird_propz<-c(sample_bird_propz, 
-  rep(0, Nsample_birds-length(sample_bird_propz)))}
-
-  df1<-data.frame(tLength=i,
-  tFreq=sum(trip_propz[trip_propz$Var1==i,]$Freq),
-  tProp=mean(sample_bird_propz),
-  tPropSE=sd(sample_bird_propz)/sqrt(length(sample_bird_propz)))
+                        rep(0, Nsample_birds-length(sample_bird_propz)))
   
-  df2<-data.frame(bird_propz=sample_bird_propz, tLength=i)
-                  
+  if(sum(sample_bird_propz)==0){sample_bird_ID<-uni_birds}else{
+    sample_bird_ID<-c(as.character(sample_bird_ID), 
+                      as.character(uni_birds[-which(uni_birds %in% sample_bird_ID)]))}
+  }
+  
+  df1<-data.frame(tLength=i,
+                  tFreq=sum(trip_propz[trip_propz$Var1==i,]$Freq),
+                  tProp=mean(sample_bird_propz),
+                  tPropSE=sd(sample_bird_propz)/sqrt(length(sample_bird_propz)))
+  
+  df2<-data.frame(bird_propz=sample_bird_propz, bird_ID= sample_bird_ID,
+                  tLength=i)
+  
   tripPropB<-rbind(tripPropB, df1)
   tripProp_ktest<-rbind(tripProp_ktest, df2)
 }
@@ -323,6 +345,132 @@ tripPropB[tripPropB$tFreq==0,]$tLength<-NA
 
 tripPropB_04<-tripPropB
 ktest_04<-tripProp_ktest
+
+
+## Heron ###
+
+## 2001 ##
+
+nest_comp_her01<-read.csv("~/grive/phd/analyses/foraging_strategy/R_analyses_data/Heron_2001_nest_attendance_cleaned.csv", h=T, strip.white=T)
+
+nest_comp_her01$Date<-ymd(nest_comp_her01$Date_hack)
+
+# Check which nests have lots of don't knows..
+nest_check<-aggregate(LW_corr~NestID, nest_comp_her01, FUN=function(x){length(which(x=="D"))})
+
+gd_nests<-nest_check[nest_check$LW_corr<4,]$NestID # gives 11 nests
+
+nest_comp_her01<-nest_comp_her01[nest_comp_her01$NestID %in% gd_nests,]
+
+nest_comp<-nest_comp_her01
+D1="2001-02-07"
+D2="2001-02-28"
+longallow=TRUE # specify longallow parameter for 2015 data as extends into April
+
+all_trips<-NULL
+for(i in unique(nest_comp$NestID))
+{
+  D1_mod<-nest_comp[nest_comp$NestID==i,]$Date[min( min(which(nest_comp[nest_comp$NestID==i& nest_comp$Date>=D1 & nest_comp$Date<=D2,]$LW_corr=="B")), 
+                                                    min(which(nest_comp[nest_comp$NestID==i& nest_comp$Date>=D1 & nest_comp$Date<=D2,]$RW_corr=="B")))]
+  
+  for(j in c("LW", "RW"))
+  {  
+    if(longallow==TRUE)
+    {
+      backs<-NULL
+      if(j=="LW")
+      {
+        backs<-which(nest_comp[nest_comp$NestID==i& nest_comp$Date>=D1_mod & nest_comp$Date<=D2,]$LW_assn=="B")
+        if(max(backs)<nrow(nest_comp[nest_comp$NestID==i& nest_comp$Date>=D1_mod & nest_comp$Date<=D2,]))
+        {
+          backs<-c(backs, which(nest_comp[nest_comp$NestID==i& nest_comp$Date>=D1_mod,]$LW_assn=="B")[length(backs)+1])
+          backs<-na.omit(backs)
+        }
+      }
+      
+      if(j=="RW")
+      {
+        backs<-which(nest_comp[nest_comp$NestID==i& nest_comp$Date>=D1_mod & nest_comp$Date<=D2,]$RW_assn=="B")
+        if(max(backs)<nrow(nest_comp[nest_comp$NestID==i& nest_comp$Date>=D1_mod & nest_comp$Date<=D2,]))
+        {
+          backs<-c(backs, which(nest_comp[nest_comp$NestID==i& nest_comp$Date>=D1_mod,]$RW_assn=="B")[length(backs)+1])
+          backs<-na.omit(backs)
+        }
+      }
+    }
+    
+    if(longallow==FALSE)
+    {  
+      backs<-NULL
+      if(j=="LW")
+      {backs<-which(nest_comp[nest_comp$NestID==i& nest_comp$Date>=D1_mod & nest_comp$Date<=D2,]$LW_assn=="B")}
+      if(j=="RW")
+      {backs<-which(nest_comp[nest_comp$NestID==i& nest_comp$Date>=D1_mod & nest_comp$Date<=D2,]$RW_assn=="B")}
+    }
+    
+    trip_lz<-diff(backs)
+    if(length(backs)==1){trip_lz=NA}
+    
+    df_internal<-data.frame(NestID=i, BirdID=j, tLength=trip_lz)
+    all_trips<-rbind(all_trips, df_internal)
+  }
+}
+
+all_trips_01<-all_trips
+# calc proportion of time per individual bird
+
+# to calc hists per individual birds ~~**
+all_trips$BirdID2<-paste(all_trips$NestID, all_trips$BirdID,sep="_")
+trip_propz<-NULL
+for(i in unique(all_trips$BirdID2))
+{
+  if(is.na(sum(all_trips[all_trips$BirdID2==i,]$tLength))){next} # this next catches any NA birds for whatever reason and removes. corrects warning created in max(backs) above
+  df1<-data.frame(BirdID2=i,table(all_trips[all_trips$BirdID2==i,]$tLength))
+  df1$Var1<-as.numeric(as.character(df1$Var1))
+  df1$TotTrip<-df1$Var1 * df1$Freq 
+  df1$TripProp<-df1$TotTrip/sum(df1$TotTrip)
+  #print(i);print(sum(df1$TotTrip))
+  trip_propz<-rbind(trip_propz, df1)
+}
+
+Nsample_birds<-length(unique(trip_propz$BirdID2))
+uni_birds<-unique(trip_propz$BirdID2)
+tripPropB<-NULL
+tripProp_ktest<-NULL
+for(i in 1:25)
+{ 
+  sample_bird_propz<-trip_propz[trip_propz$Var1==i,]$TripProp
+  sample_bird_ID<-trip_propz[trip_propz$Var1==i,]$BirdID2
+  
+  if(length(sample_bird_propz)<Nsample_birds)
+  {sample_bird_propz<-c(sample_bird_propz, 
+                        rep(0, Nsample_birds-length(sample_bird_propz)))
+  
+  if(sum(sample_bird_propz)==0){sample_bird_ID<-uni_birds}else{
+  sample_bird_ID<-c(as.character(sample_bird_ID), 
+                    as.character(uni_birds[-which(uni_birds %in% sample_bird_ID)]))}
+  }
+  
+  df1<-data.frame(tLength=i,
+                  tFreq=sum(trip_propz[trip_propz$Var1==i,]$Freq),
+                  tProp=mean(sample_bird_propz),
+                  tPropSE=sd(sample_bird_propz)/sqrt(length(sample_bird_propz)))
+  
+  df2<-data.frame(bird_propz=sample_bird_propz, bird_ID= sample_bird_ID,
+                  tLength=i)
+  
+  tripPropB<-rbind(tripPropB, df1)
+  tripProp_ktest<-rbind(tripProp_ktest, df2)
+}
+# ~~
+
+tripPropB[tripPropB$tFreq==0,]$tProp<-NA #change 0 to NA
+tripPropB[tripPropB$tFreq==0,]$tLength<-NA
+
+tripPropB_01<-tripPropB
+ktest_01<-tripProp_ktest
+
+
 
 ### Plotting
 

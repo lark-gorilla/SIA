@@ -69,6 +69,8 @@ dev.off()
 
 # check whether to use just overlapping dates (I think best) or whole time
 
+all_ck$ckID<-paste(all_ck$Year, all_ck$NestID)
+
 lhi_paper<-all_ck[all_ck$Col=="LHI" & all_ck$ColYr!="LHI_2014",]
 
 her_paper<-all_ck[all_ck$ColYr=="Heron_2001" | all_ck$ColYr=="Heron_2003" | all_ck$ColYr=="Heron_2015" ,]
@@ -94,62 +96,101 @@ qplot(data=her_paper, y=ck_weight, x=ck_tar, colour=factor(Year))
 
 hist(lhi_paper$ck_weight) # looks normal
 shapiro.test(lhi_paper$ck_weight) # hmm not sure about that
-lhi_mod<-lm(sqrt(ck_weight)~ck_tar, data=lhi_paper)
-plot(lhi_mod,2)
-plot(lhi_mod,4) # outliers fine, small
 
+library(lme4)
+
+lhi_mod<-lmer(sqrt(ck_weight)~ck_tar + (1|ckID), data=lhi_paper)
+
+plot(lhi_mod)
+qqnorm(resid(lhi_mod))
 
 lhi_paper$resids<-residuals(lhi_mod)
 lhi_paper$resids2<-(lhi_paper$ck_weight)-(fitted(lhi_mod)^2) # backtransformed
+lhi_paper$resids3<-(lhi_paper$ck_weight)-(predict(lhi_mod, re.form=~0)^2) 
+# resids 3 are predicting without the random effect
 
-qplot(data=lhi_paper,x=factor(Year), group=Year, y=resids2, geom="boxplot")
 
-library(agricolae)
-library(lsmeans)
+qplot(data=lhi_paper,x=factor(Year), group=Year, y=resids3, geom="boxplot")
+
+library(lmerTest)
 
 summary(lhi_mod)
 
-lhi_mod2<-lm(resids2~factor(Year), data=lhi_paper)
+lhi_paper$Year<-as.character(lhi_paper$Year)
+
+lhi_mod2<-lmer(resids3~Year+ (1|ckID), data=lhi_paper)
+
 anova(lhi_mod2)
 
-HSD.test(lhi_mod2, trt='factor(Year)', console = T, alpha=0.001)
-
-lsmeans(lhi_mod2, specs='Year')
+lsmeansLT(lhi_mod2, test.effs='Year')
 
 # now Heron
 
 hist(her_paper$ck_weight)
 hist(log(her_paper$ck_weight)) # looks better
 shapiro.test(her_paper$ck_weight) # hmm
-her_mod<-lm(sqrt(ck_weight)~ck_tar, data=her_paper)
-plot(her_mod,1)
-plot(her_mod,2)
+
+her_mod<-lmer(sqrt(ck_weight)~ck_tar + (1|ckID), data=her_paper)
+
+plot(her_mod)
+qqnorm(resid(her_mod))
 
 plot(her_mod,4) # get rid of some outliers
 
 her_paper<-her_paper[-which(row.names(her_paper)%in%c(23023, 23034, 23121)),]
+her_paper<-na.omit(her_paper)
 # remake
-her_mod<-lm(sqrt(ck_weight)~ck_tar, data=her_paper)
+her_mod<-lmer(sqrt(ck_weight)~ck_tar + (1|ckID), data=her_paper)
 
 her_paper$resids<-residuals(her_mod)
 her_paper$resids2<-(her_paper$ck_weight)-(fitted(her_mod)^2) # backtransformed
+her_paper$resids3<-(her_paper$ck_weight)-(predict(her_mod, re.form=~0)^2) # backtransformed
 
-qplot(data=her_paper,x=factor(Year), group=Year, y=resids2, geom="boxplot")
 
-library(agricolae)
+qplot(data=her_paper,x=factor(Year), group=Year, y=resids3, geom="boxplot")
 
 summary(her_mod)
 
-her_mod2<-lm(resids2~factor(Year), data=her_paper)
+her_paper$Year<-as.character(her_paper$Year)
+
+her_mod2<-lmer(resids3~Year+ (1|ckID), data=her_paper)
+
 anova(her_mod2)
 
-HSD.test(her_mod2, trt='factor(Year)', console = T, alpha=0.001)
+lsmeansLT(her_mod2, test.effs='Year')
 
-HSD.test(her_mod2, trt='factor(Year)', console = T, alpha=0.05)
+# make plot with both colonies
 
-lsmeans(her_mod2, specs='Year')
+df1<-rbind(data.frame(Colony="Lord Howe Island",
+           lsmeansLT(lhi_mod2, test.effs='Year')$ lsmeans.table),
+           data.frame(Colony="Heron Island",
+            lsmeansLT(her_mod2, test.effs='Year')$ lsmeans.table))
+
+df1$ColYr<-paste(df1$Colony, df1$Year)
+
+df1$Year<-relevel(df1$Year, ref="2003")
+df1$Year<-relevel(df1$Year, ref="2001")
+
+
+p<-ggplot(data=df1, aes(x=Year))
+p2<-p+geom_point((aes(y=Estimate)), shape=1, size=3)+
+  geom_hline(aes(yintercept=0), linetype=2)+
+  geom_errorbar(aes(ymin=Lower.CI, ymax=Upper.CI))+
+  facet_wrap(~Colony, scale="free_x")+
+  ylab("Mean chick condition")+
+  theme_bw()+
+  scale_y_continuous(limits=c(-30, 30), breaks=c(-30,-20,-10,0,10,20, 30))
+
+jpeg("~/grive/phd/analyses/SIA/paper_plots/ck_cond.jpg", width =8 , height =4 , units ="in", res =300)
+#A4 size
+p2
+dev.off()
 
 #test if difference between Heron and LHI colony
+# actually we are not doing this as per Brads suggestion to make
+# each graph seperately then the 0 line should be roughly compararble
+# also it questions a lot of work they have already published
+
 p1<-data.frame(ck_tar=seq(18, 50,0.1))
 p1$lhi<-predict(lhi_mod, newdata=p1)
 p1$her<-predict(her_mod, newdata=p1)
