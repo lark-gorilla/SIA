@@ -715,36 +715,45 @@ grid.arrange(pp_16, pp_15, pp_04, pp_03, pp_01, ncol=1,nrow=5,
 dev.off()
 
 # getting mean trip length comparison between year stats
-all_trips_04$NestID<-as.character(all_trips_04$NestID)
-all_trips_15$NestID<-as.character(all_trips_15$NestID)
-all_trips_16$NestID<-as.character(all_trips_16$NestID)
 
-all_years<-rbind(data.frame(all_trips_04, year=as.character("2004")),
+all_years<-rbind(data.frame(all_trips_01, year=as.character("2001")),
+                 data.frame(all_trips_03, year=as.character("2003")),
+                 data.frame(all_trips_04, year=as.character("2004")),
                  data.frame(all_trips_15, year=as.character("2015")),
                  data.frame(all_trips_16, year=as.character("2016")))
+
+all_years$BirdID2<-paste(all_years$year, all_years$NestID, all_years$BirdID)
 
 library(car) # fo
 leveneTest(tLength~year, data=all_years, center=mean)# uneven variances
 shapiro.test(all_years$tLength)#not normal
+hist(all_years$tLength) # not normal, too much for poisson
 
-#kruskal(all_years$tLength, all_years$year, p.adj="bonferroni", console=T)
+k_allyr<-with(all_years, kruskal(tLength,year, console=T))
 
-kruskal.test(all_years$tLength, all_years$year)
+# Or try taking mean of each bird
 
-pairwise.wilcox.test(all_years$tLength, all_years$year, p.adj = "bonf", paired=FALSE)
+all_yr_mn<-aggregate(tLength~BirdID2, data=all_years, mean)
+all_yr_mn$year<-substr(all_yr_mn$BirdID2, 1,4)
+m1<-lm(tLength~year, all_yr_mn)
+lsmeans(m1, specs="year")
 
-mean(all_years[all_years$year=="2004",]$tLength)
-sd(all_years[all_years$year=="2004",]$tLength)
+# nah dont like.
 
-mean(all_years[all_years$year=="2015",]$tLength)
-sd(all_years[all_years$year=="2015",]$tLength)
+# But need to test LHI and Heron seperately
 
-mean(all_years[all_years$year=="2016",]$tLength)
-sd(all_years[all_years$year=="2016",]$tLength)
+all_lhi<-rbind(data.frame(all_trips_04, year=as.character("2004")),
+                 data.frame(all_trips_15, year=as.character("2015")),
+                 data.frame(all_trips_16, year=as.character("2016")))
 
+k_lhi<-with(all_lhi,kruskal(tLength,year, console=T))
+k_lhi
 
+all_her<-rbind(data.frame(all_trips_01, year=as.character("2001")),
+                 data.frame(all_trips_03, year=as.character("2003")))
 
-
+w_her<-wilcox.test(tLength~year, all_her)
+w_her
 # OLD
 
 # pariwise Mann-whitney U test
@@ -850,5 +859,162 @@ pp_16<-ggplot(data=tripPropB_16, aes(x=tLength, y=tProp))+
   theme(axis.text.x = element_text(size=15),
         axis.text.y = element_text(size=15),
         axis.title.x = element_text(size =20))
+
+# LHI 15 dual foraging plot
+
+### 2015 ###
+library(lubridate)
+
+nest_comp_lhi15<-read.csv("~/grive/phd/analyses/foraging_strategy/R_analyses_data/LHI_2015_nest_weights_attendance_cleaned_manually_assigned.csv", h=T, strip.white=T)
+
+nest_comp_lhi15$Date<-ymd_hms(paste(nest_comp_lhi15$Date, "00-00-00"))
+
+nest_comp<-nest_comp_lhi15[nest_comp_lhi15$NestID %in%
+                                   c("1", "3", "4", "5", "7", "11", "18",
+                                     "22", "26", "27", "31", "47"),]
+
+D1="2015-02-18"
+D2="2015-03-18"
+
+nest_comp<-nest_comp[nest_comp$Date>=D1 & nest_comp$Date<=D2,]
+
+nc2<-NULL
+for(i in 1:nrow(nest_comp)){
+out<-rbind(nest_comp[i,], nest_comp[i,])
+nc2<-rbind(nc2, out)
+}
+
+nc2<-nc2[nc2$NestID %in% c(7,26,22),]
+
+#write.csv(nc2, "LHI_nests_for_atten_graph.csv", quote=F, row.names=F)
+
+
+pdat<-read.csv("~/grive/phd/analyses/foraging_strategy/LHI_nests_for_atten_graph.csv", h=T)
+
+
+pdat$DateTime<-ymd_hms(paste(pdat$Date, pdat$Time))
+
+pdat1<-pdat
+pdat2<-pdat
+
+pdat1$RW_plot<-NULL
+names(pdat1)[names(pdat1)=="LW_plot"]<-"plot_w"
+pdat1$wing<-"L"
+
+pdat2$LW_plot<-NULL
+names(pdat2)[names(pdat2)=="RW_plot"]<-"plot_w"
+pdat2$wing<-"R"
+
+pdat3<-rbind(pdat1, pdat2)
+
+library(ggplot2)
+library(tidyverse)# this and below are for geom_line hack
+library(signal)
+#https://stackoverflow.com/questions/43771900/use-curved-lines-in-bumps-chart
+
+#remove nas
+pdat3<-na.omit(pdat3)
+
+#make cleaver splines
+pdat4<-pdat3
+pdat4$DateTime<-as.integer(as.numeric(pdat4$DateTime))
+
+#for nest 26
+data_line_26 = pdat4[pdat4$NestID=="26",] %>%
+  group_by(wing) %>%
+  do({
+    tibble(DateTime = seq(min(.$DateTime), max(.$DateTime),length.out=1000),
+           plot_w = pchip(.$DateTime, .$plot_w, DateTime))})
+
+data_line_26<-data.frame(data_line_26)
+data_line_26$DateTime<- ymd_hms(paste(as.Date(as.POSIXlt(data_line_26$DateTime, origin="1970-01-01", "GMT")),
+format((as.POSIXlt(data_line_26$DateTime, origin="1970-01-01", "GMT")), "%H-%M-%S")))
+
+#for nest 22
+data_line_22 = pdat4[pdat4$NestID=="22",] %>%
+  group_by(wing) %>%
+  do({
+    tibble(DateTime = seq(min(.$DateTime), max(.$DateTime),length.out=1000),
+           plot_w = pchip(.$DateTime, .$plot_w, DateTime))})
+
+data_line_22<-data.frame(data_line_22)
+data_line_22$DateTime<- ymd_hms(paste(as.Date(as.POSIXlt(data_line_22$DateTime, origin="1970-01-01", "GMT")),
+                                      format((as.POSIXlt(data_line_22$DateTime, origin="1970-01-01", "GMT")), "%H-%M-%S")))
+#for nest 7
+data_line_7 = pdat4[pdat4$NestID=="7",] %>%
+  group_by(wing) %>%
+  do({
+    tibble(DateTime = seq(min(.$DateTime), max(.$DateTime),length.out=1000),
+           plot_w = pchip(.$DateTime, .$plot_w, DateTime))})
+
+data_line_7<-data.frame(data_line_7)
+data_line_7$DateTime<- ymd_hms(paste(as.Date(as.POSIXlt(data_line_7$DateTime, origin="1970-01-01", "GMT")),
+                                      format((as.POSIXlt(data_line_7$DateTime, origin="1970-01-01", "GMT")), "%H-%M-%S")))
+
+
+# make plots
+
+# nest 26
+p3<-ggplot(data=pdat3[pdat3$NestID=="26",], aes(x=DateTime, y=plot_w, colour=wing))+
+  geom_line(data = data_line_26, aes(linetype=wing))+
+  geom_point()+
+  scale_x_datetime(date_minor_breaks = "1 week", limits=c(ymd_hms("2015-02-18 00-00-00"),
+                                                          ymd_hms("2015-03-17 12-00-00")))+
+  scale_y_discrete(limits=c(0,1,2,3,4,5,6,7,8,9,10,11,12),
+  labels=c("Colony", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"))+
+  ylab("Trip length (days)")+xlab("Date")+
+  theme_bw()+
+  geom_text(aes(x=ymd_hms("2015-02-19 00-00-00"), y=12, label="c"), size=8, col=1)+
+  theme(axis.title.y = element_text(size = rel(1.4), angle = 90))+
+  theme(axis.title.x = element_text(size = rel(1.8), angle = 00))+
+  theme(axis.text.x = element_text( size=14))+
+  theme(axis.text.y = element_text( size=14))+
+  theme(legend.position=0, axis.title.x=element_blank())
+
+# nest 22
+p2<-ggplot(data=pdat3[pdat3$NestID=="22",], aes(x=DateTime, y=plot_w, colour=wing))+
+  geom_line(data = data_line_22, aes(linetype=wing))+
+  geom_point()+
+  scale_x_datetime(date_minor_breaks = "1 week", limits=c(ymd_hms("2015-02-18 00-00-00"),
+                                                          ymd_hms("2015-03-17 12-00-00")))+
+  
+  scale_y_discrete(limits=c(0,1,2,3,4,5,6,7,8,9,10,11,12),
+                   labels=c("Colony", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"))+
+  ylab("Trip length (days)")+
+  theme_bw()+
+  geom_text(aes(x=ymd_hms("2015-02-19 00-00-00"), y=12, label="b"), size=8, col=1)+
+  theme(axis.title.y = element_text(size = rel(1.4), angle = 90))+
+  theme(axis.title.x = element_text(size = rel(1.8), angle = 00))+
+  theme(axis.text.x = element_text( size=14))+
+  theme(axis.text.y = element_text( size=14))+
+  theme(legend.position=0, axis.title.x=element_blank())
+
+# nest 22
+p1<-ggplot(data=pdat3[pdat3$NestID=="7",], aes(x=DateTime, y=plot_w, colour=wing))+
+  geom_line(data = data_line_7, aes(linetype=wing))+
+  geom_point()+
+  scale_x_datetime(date_minor_breaks = "1 week", limits=c(ymd_hms("2015-02-18 00-00-00"),
+                                                          ymd_hms("2015-03-17 12-00-00")))+
+  
+  scale_y_discrete(limits=c(0,1,2,3,4,5,6,7,8,9,10,11,12),
+                   labels=c("Colony", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"))+
+  ylab("Trip length (days)")+
+  theme_bw()+
+  geom_text(aes(x=ymd_hms("2015-02-19 00-00-00"), y=12, label="a"), size=8, col=1)+
+  theme(axis.title.y = element_text(size = rel(1.4), angle = 90))+
+  theme(axis.title.x = element_text(size = rel(1.8), angle = 00))+
+  theme(axis.text.x = element_text( size=14))+
+  theme(axis.text.y = element_text( size=14))+
+  theme(legend.position=0, axis.title.x=element_blank())
+
+library(gridExtra)
+library(grid)
+png("/home/mark/grive/phd/analyses/SIA/paper_plots/attendanceplot2.jpg", width = 9, height =9 , units ="in", res =300)
+
+
+grid.arrange( p1,  p2, p3, ncol=1,nrow=3, 
+              bottom=textGrob("Date",gp=gpar(fontsize=18)))
+
+dev.off()
 
 

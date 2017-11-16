@@ -71,6 +71,7 @@ dev.off()
 
 all_ck$ckID<-paste(all_ck$Year, all_ck$NestID)
 
+
 lhi_paper<-all_ck[all_ck$Col=="LHI" & all_ck$ColYr!="LHI_2014",]
 
 her_paper<-all_ck[all_ck$ColYr=="Heron_2001" | all_ck$ColYr=="Heron_2003" | all_ck$ColYr=="Heron_2015" ,]
@@ -89,7 +90,7 @@ lhi_paper<-na.omit(lhi_paper)
 
 lhi_paper<-lhi_paper[lhi_paper$week<11,]
 
-her_paper<-her_paper[lhi_paper$week<11,]
+her_paper<-her_paper[her_paper$week<11,]
 
 qplot(data=lhi_paper, y=ck_weight, x=ck_tar, colour=factor(Year))
 qplot(data=her_paper, y=ck_weight, x=ck_tar, colour=factor(Year))
@@ -161,9 +162,9 @@ lsmeansLT(her_mod2, test.effs='Year')
 
 # make plot with both colonies
 
-df1<-rbind(data.frame(Colony="Lord Howe Island",
+df1<-rbind(data.frame(Colony="a",
            lsmeansLT(lhi_mod2, test.effs='Year')$ lsmeans.table),
-           data.frame(Colony="Heron Island",
+           data.frame(Colony="b",
             lsmeansLT(her_mod2, test.effs='Year')$ lsmeans.table))
 
 df1$ColYr<-paste(df1$Colony, df1$Year)
@@ -178,10 +179,10 @@ p2<-p+geom_point((aes(y=Estimate)), shape=1, size=3)+
   geom_errorbar(aes(ymin=Lower.CI, ymax=Upper.CI))+
   facet_wrap(~Colony, scale="free_x")+
   ylab("Mean chick condition")+
-  theme_bw()+
+  theme_bw()+theme(strip.text = element_text(size=20))+
   scale_y_continuous(limits=c(-30, 30), breaks=c(-30,-20,-10,0,10,20, 30))
 
-jpeg("~/grive/phd/analyses/SIA/paper_plots/ck_cond.jpg", width =8 , height =4 , units ="in", res =300)
+jpeg("~/grive/phd/analyses/SIA/paper_plots/ck_cond2_CI.jpg", width =8 , height =4 , units ="in", res =300)
 #A4 size
 p2
 dev.off()
@@ -230,5 +231,218 @@ HSD.test(m3, trt='ColYr', console = T, alpha=0.001)
 HSD.test(m3, trt='ColYr', console = T, alpha=0.05)
 
 lsmeans(m3, specs='ColYr')
+
+
+## Using the lhi_paper and her_paper data before the na.omit() and
+## without removing the earlier tarsus NAs i.e giving all weights
+
+setwd("~/grive/phd/analyses/foraging_strategy")
+
+all_ck<-read.csv("~/grive/phd/analyses/foraging_strategy/R_analyses_data/ck_wgt_tar_LHI_Heron_ALL.csv", h=T, strip.white=T)
+
+all_ck$ColYr<-paste(all_ck$Col, all_ck$Year, sep="_")
+
+all_ck<-all_ck[all_ck$ck_weight<600,]
+
+# remove chicks only measured in mornings (LHI 2014)
+all_ck<-all_ck[-which(all_ck$NestID %in% c("c1", "c2", "c3", "c4", "c5")),]
+
+# remove rows without a weight (will remove some tarsus measures)
+all_ck<-all_ck[-which(is.na(all_ck$ck_weight)),]
+
+# ok just some other exploratory graphs, while we have the data
+all_ck$Date<-ymd(substr(all_ck$DateTime,1,10))
+# add date
+
+all_ck$ckID<-paste(all_ck$Year, all_ck$NestID)
+
+all_ck$week<-week(all_ck$DateTime)
+
+lhi_paper<-all_ck[all_ck$Col=="LHI" & all_ck$ColYr!="LHI_2014",]
+
+her_paper<-all_ck[all_ck$ColYr=="Heron_2001" | all_ck$ColYr=="Heron_2003" | all_ck$ColYr=="Heron_2015" ,]
+
+# Use cutoff at week 10 = mid March
+
+lhi_paper$ck_cul<-NULL
+her_paper$ck_cul<-NULL
+
+
+
+lhi_paper<-lhi_paper[lhi_paper$week<11,]
+
+her_paper<-her_paper[her_paper$week<11,]
+
+
+all_dat<-rbind(her_paper, lhi_paper)
+
+# only calc for chicks with tar
+
+cksWtar<-unique(rbind(her_paper, lhi_paper)$ckID) # using her and lhi_paper data that DO have only tar meaurements
+
+all_dat<-all_dat[all_dat$ckID %in% cksWtar,]
+
+#fix ckID to include ID for colony too
+
+all_dat$ckID<-paste(all_dat$Col, all_dat$ckID)
+
+all_dat$hour<-hour(all_dat$DateTime)
+all_dat<-all_dat[all_dat$hour>14,]
+
+all_dat$Date<-date(all_dat$DateTime)
+
+# loop to force one measurement per day. Set as earliest measurement to
+# 14:00 if there are daily duplicates
+out<-NULL
+for( i in unique(all_dat$ckID))
+{
+  d1<-all_dat[all_dat$ckID==i,]
+  
+  if(TRUE %in% duplicated(d1[d1$ckID==i,]$Date)){
+    
+  d1<-d1[-which(duplicated(d1[d1$ckID==i,]$Date)),]}
+  
+  out<-rbind(out, d1)
+}
+
+# check for gaps
+out$day<-day(out$DateTime)
+out$daydiff<-0
+for( i in unique(out$ckID))
+{
+  out[out$ckID==i,]$daydiff<-c(0,diff(out[out$ckID==i,]$day))
+}
+
+table(out$daydiff)
+# manual clean of gaps> 2 days
+
+out<-out[-which(out$Year==2001 & out$daydiff==3),]
+
+out<-out[-which(out$ckID=="Heron 2003 22" & out$daydiff==0),]
+
+out<-out[out$ckID!="LHI 2015 45",]
+
+aggy1<-data.frame(aggregate(Date~ckID, out, FUN=function(x){length(x)}))
+
+# remove poor smapled nests
+
+out<-out[out$ckID %in% aggy1[aggy1$Date>10,]$ckID,]
+
+# loop to calc chick differences
+out$ckdiff<-0
+for( i in unique(out$ckID))
+{
+  out[out$ckID==i,]$ckdiff<-c(0,diff(out[out$ckID==i,]$ck_weight))
+}
+
+# loop to calc proportion of nests fed each day
+# run per dataset
+
+d1<-out[out$ColYr=="Heron_2015" & out$week %in% c(7,8,9),]
+
+dm_out<-NULL
+for(i in unique(d1$Date))
+{
+  day0<-d1[d1$Date==i,]
+  if(sum(day0$ckdiff)==0){next}
+  
+  day1<-day0[day0$ckdiff!=0,] # remove nests which still havent started
+  
+  df1<-data.frame(ColYr=unique(day1$ColYr), Date= unique(day1$Date),
+                prop_nest_fed=nrow(day1[day1$ckdiff>0,])/nrow(day1), n_nest=nrow(day1))
+  
+  dm_out<-rbind(dm_out, df1)
+}
+
+her01<-dm_out
+her03<-dm_out
+her15<-dm_out
+
+lhi04<-dm_out
+lhi15<-dm_out
+lhi16<-dm_out
+
+propfd2<-rbind(her01, her03, her15, lhi04, lhi15, lhi16)
+
+aggregate(prop_nest_fed~ColYr, propfd2, mean)
+
+aggregate(prop_nest_fed~ColYr, propfd2, sd)
+
+m1<-lm(prop_nest_fed~ColYr, propfd2)
+summary(m1)
+
+library(lsmeans)
+lsmeans(m1, "ColYr")
+
+library(agricolae)
+tuk1<-HSD.test(m1,  "ColYr")
+
+propfd2H<-rbind(her01, her03, her15 )
+
+propfd2L<-rbind(lhi04, lhi15, lhi16 )
+
+
+
+m1H<-lm(prop_nest_fed~ColYr, propfd2H)
+summary(m1H)
+lsmeans(m1H, "ColYr")
+tuk1<-HSD.test(m1H,  "ColYr")
+tuk1
+
+m1L<-lm(prop_nest_fed~ColYr, propfd2L)
+summary(m1L)
+lsmeans(m1L, "ColYr")
+tuk1<-HSD.test(m1L,  "ColYr")
+tuk1
+
+
+
+
+
+
+#average daily mass gains in chicks
+agg1<-data.frame(aggregate(ckdiff~ckID, out[out$week %in% c(7,8,9) & out$ckdiff>0,],mean))
+
+agg1$Col<-substr(agg1$ckID,1,3)
+
+agg1$Year<-"2001"
+agg1[25:44,]$Year<-"2003"
+agg1[45:63,]$Year<-"2003"
+agg1[64:83,]$Year<-"2004"
+agg1[84:143,]$Year<-"2015"
+agg1[144:185,]$Year<-"2016"
+
+
+agg1$ColYr<-paste(agg1$Col, agg1$Year)
+
+aggregate(ckdiff~ColYr, agg1 ,mean)
+
+# still dont like it
+
+
+# not needed
+#loop to calc interval since feed
+
+out$feed_interval<-999
+for( i in unique(out$ckID))
+{
+  internaldf<-
+  d2<-out[out$ckID==i,]
+  
+  int_bind<-NULL
+  h=1
+  while(h <= nrow(d2))
+  {
+    j=h
+    if(j==nrow(d2) & d2[j,]$ckdiff<0.1){break}
+    while(d2[j,]$ckdiff<0.1){j<-j+1}
+    print(j)
+    int_bind<-c(int_bind,j)
+    h=j+1
+  }
+  
+  data.frame(ckID=i,)
+  out[out$ckID==i,]$ckdiff<-c(0,diff(out[out$ckID==i,]$ck_weight))
+}
 
 
